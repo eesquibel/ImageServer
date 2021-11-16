@@ -59,6 +59,14 @@ namespace ImageServer.Models
         [JsonIgnore]
         public string Group { get; private set; }
 
+        private List<string> tags;
+
+        public IReadOnlyList<string> Tags => tags;
+
+        private Dictionary<string, object[]> reactions;
+
+        public IReadOnlyDictionary<string, object[]> Reactions => reactions;
+
         // TODO: Helper for video object
         /// <summary>
         /// Helper function to get Image reference from the Group, FileInfo, and Image of the object
@@ -83,7 +91,29 @@ namespace ImageServer.Models
 
         private Image()
         {
+            tags = new List<string>();
+            reactions = new Dictionary<string, object[]>();
+        }
 
+        public void LoadTags(IEnumerable<string> Tags)
+        {
+            lock (tags)
+            {
+                tags.Clear();
+
+                foreach (var tag in Tags)
+                {
+                    tags.Add(tag);
+                }
+            }
+        }
+
+        public void LoadReactions(string Key, IEnumerable<object> Reactions)
+        {
+            lock (reactions)
+            {
+                reactions[Key] = Reactions.ToArray();
+            }
         }
     }
 }

@@ -7,7 +7,7 @@ namespace ImageServer.Controllers
 {
     [Route("api/groups/{group}")]
     [ApiController]
-    public class ImageController : ControllerBase
+    public partial class ImageController : ControllerBase
     {
         /// <summary>
         /// Random number generator for "random" route
@@ -73,5 +73,8 @@ namespace ImageServer.Controllers
 
             return NotFound();
         }
+
+        // TODO: DELETE action to remove images from Group
+        // TODO: PUT action to add a new image to a Group
     }
 }

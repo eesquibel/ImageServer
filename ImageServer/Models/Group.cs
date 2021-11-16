@@ -53,10 +53,15 @@ namespace ImageServer.Models
 
         public bool ContainsKey(FileInfo fileInfo) => Images.ContainsKey(fileInfo.Name);
 
+        public Image this[string key]
+        {
+            get => Images[key];
+        }
+
         /// <summary>
         /// Load the contents of the directory
         /// </summary>
-        public void Load()
+        public async Task Load()
         {
             // Iterate through all the files in the directory
             foreach (var path in Directory.GetFiles(Path))
@@ -79,6 +84,8 @@ namespace ImageServer.Models
                     // TODO: Handle Load exceptions
                 }
             }
+
+            await Config.LoadGroup(this);
         }
     }
 }
