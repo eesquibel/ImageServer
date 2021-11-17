@@ -1,9 +1,8 @@
-﻿using System;
+﻿using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats;
 using System.Collections.Generic;
-using System.Drawing.Imaging;
 using System.Linq;
 using System.Text.Json.Serialization;
-using System.Threading.Tasks;
 
 namespace ImageServer.Models
 {
@@ -36,12 +35,12 @@ namespace ImageServer.Models
         /// Image format
         /// </summary>
         [JsonIgnore]
-        public ImageFormat Format { get; private set; }
+        public IImageFormat Format { get; private set; }
 
         /// <summary>
         /// User/API friendly name of image type
         /// </summary>
-        public string Type => Format.ToString().ToLower();
+        public string Type => Format.Name.ToLower();
 
         /// <summary>
         /// Media width/X dimension
@@ -75,16 +74,16 @@ namespace ImageServer.Models
         /// <param name="fileInfo">FileInfo for the specific file</param>
         /// <param name="bitmap">Image object to get dimentions and format</param>
         /// <returns></returns>
-        public static Image From(string group, System.IO.FileInfo fileInfo, System.Drawing.Image bitmap)
+        public static Image From(string group, System.IO.FileInfo fileInfo, IImageInfo imageInfo, IImageFormat imageFormat)
         {
             return new Image
             {
                 Name = fileInfo.Name,
                 Path = fileInfo.FullName,
                 Size = fileInfo.Length,
-                Format = bitmap.RawFormat,
-                Width = bitmap.Width,
-                Height = bitmap.Height,
+                Format = imageFormat,
+                Width = imageInfo.Width,
+                Height = imageInfo.Height,
                 Group = group
             };
         }

@@ -1,10 +1,10 @@
+using ImageServer.Models;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using System.IO;
-using ImageServer.Models;
 
 namespace ImageServer
 {
@@ -46,7 +46,7 @@ namespace ImageServer
             }
         }
 
-        private void Watch_Renamed(object sender, RenamedEventArgs renamed)
+        private async void Watch_Renamed(object sender, RenamedEventArgs renamed)
         {
             try
             {
@@ -65,6 +65,9 @@ namespace ImageServer
                     // Make sure its a file we have cataloged
                     if (group.ContainsKey(old))
                     {
+                        // TODO: Handle video files
+                        var (imageInfo, format) = await SixLabors.ImageSharp.Image.IdentifyWithFormatAsync(renamed.FullPath);
+
                         // Stop other threads (i.e. REST API) from accessing the Group until we are done since
                         // this takes two opperations
                         lock (group)
@@ -72,18 +75,14 @@ namespace ImageServer
                             // Get the old file out of the Group
                             if (group.TryRemove(old, out Image image))
                             {
-                                // TODO: Handle video files
-                                using (var bitmap = System.Drawing.Image.FromFile(renamed.FullPath))
+                                // Re-add the file at the new path
+                                if (group.TryAdd(current, imageInfo, format, out image))
                                 {
-                                    // Re-add the file at the new path
-                                    if (group.TryAdd(current, bitmap, out image))
-                                    {
-                                        LOG.LogInformation("Renamed: [{0}] {1} => {2}", group.Name, old.Name, image.Name);
-                                    }
-                                    else
-                                    {
-                                        LOG.LogError("Renamed add Failed: [{0}] {1}", group.Name, current.Name);
-                                    }
+                                    LOG.LogInformation("Renamed: [{0}] {1} => {2}", group.Name, old.Name, image.Name);
+                                }
+                                else
+                                {
+                                    LOG.LogError("Renamed add Failed: [{0}] {1}", group.Name, current.Name);
                                 }
                             }
                             else
@@ -168,17 +167,16 @@ namespace ImageServer
                     }
 
                     // TODO: Handle video files
-                    using (var bitmap = System.Drawing.Image.FromFile(file.FullName))
+                    var (imageInfo, format) = await SixLabors.ImageSharp.Image.IdentifyWithFormatAsync(file.FullName);
+
+                    // Add the file to the group
+                    if (group.TryAdd(file, imageInfo, format, out Image image))
                     {
-                        // Add the file to the group
-                        if (group.TryAdd(file, bitmap, out Image image))
-                        {
-                            LOG.LogInformation("Added: [{0}] {1}", group.Name, image.Name);
-                        }
-                        else
-                        {
-                            LOG.LogError("Added Failed: [{0}] {1}", group.Name, file.Name);
-                        }
+                        LOG.LogInformation("Added: [{0}] {1}", group.Name, image.Name);
+                    }
+                    else
+                    {
+                        LOG.LogError("Added Failed: [{0}] {1}", group.Name, file.Name);
                     }
                 }
             } catch (Exception e)

@@ -1,8 +1,8 @@
-﻿using System;
+﻿using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats;
+using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
@@ -37,9 +37,9 @@ namespace ImageServer.Models
 
         private bool TryAdd(string key, Image value) => Images.TryAdd(key, value);
 
-        public bool TryAdd(FileInfo fileInfo, System.Drawing.Image bitmap, out Image image)
+        public bool TryAdd(FileInfo fileInfo, IImageInfo imageInfo, IImageFormat format, out Image image)
         {
-            image = Image.From(Name, fileInfo, bitmap);
+            image = Image.From(Name, fileInfo, imageInfo, format);
             return TryAdd(image.Name, image);
         }
 
@@ -71,13 +71,14 @@ namespace ImageServer.Models
                     // Get FileInfo and Image object for file
                     // TODO: Handle video formats
                     // TODO: Handle invalid file types
-                    var (file, bitmap) = Tuple.Create(new FileInfo(path), System.Drawing.Image.FromFile(path));
+                    var file = new FileInfo(path);
+                    var (imageInfo, format) = await SixLabors.ImageSharp.Image.IdentifyWithFormatAsync(path);
 
-                    // Add to thread-safe collection
-                    TryAdd(file, bitmap, out _);
-
-                    // Cleanup
-                    bitmap.Dispose();
+                    if (imageInfo != null)
+                    {
+                        // Add to thread-safe collection
+                        TryAdd(file, imageInfo, format, out _);
+                    }
                 }
                 catch (Exception)
                 {
